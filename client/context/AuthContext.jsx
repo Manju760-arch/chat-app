@@ -21,21 +21,20 @@ export const AuthProvider = ({ children }) => {
     if (storedUser) {
       try {
         setAuthUser(JSON.parse(storedUser));
-      } catch (e) {
+      } catch {
         localStorage.removeItem("authUser");
       }
     }
   }, []);
 
-  // Keep axios token header and run checkAuth when token changes
+  // On token update → set axios header + run checkAuth
   useEffect(() => {
     if (token) {
-      axios.defaults.headers.common["token"] = token;
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       checkAuth();
     } else {
-      delete axios.defaults.headers.common["token"];
+      delete axios.defaults.headers.common["Authorization"];
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const checkAuth = async () => {
@@ -46,20 +45,11 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("authUser", JSON.stringify(data.user));
         connectSocket(data.user);
       }
-    } catch (error) {
-      // silently ignore if not authenticated; show msg only if network error
-      if (error?.response) {
-        // server responded with something (not network)
-      } else {
-        toast.error("Network error while checking auth");
-      }
-    }
+    } catch {}
   };
 
   const connectSocket = (userData) => {
     if (!userData) return;
-
-    // If socket exists and connected, skip
     if (socket && socket.connected) return;
 
     const newSocket = io(backendUrl, {
@@ -70,11 +60,11 @@ export const AuthProvider = ({ children }) => {
       console.log("Socket connected:", newSocket.id);
     });
 
-    setSocket(newSocket);
-
     newSocket.on("getOnlineUsers", (userIds) => {
       setOnlineUsers(userIds);
     });
+
+    setSocket(newSocket);
   };
 
   const login = async (state, credentials) => {
@@ -84,19 +74,22 @@ export const AuthProvider = ({ children }) => {
       if (data.success) {
         setAuthUser(data.userData);
         setToken(data.token);
+
         localStorage.setItem("token", data.token);
         localStorage.setItem("authUser", JSON.stringify(data.userData));
-        axios.defaults.headers.common["token"] = data.token;
+
+        axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
         connectSocket(data.userData);
+
         toast.success(data.message);
-        return { success: true, data };
-      } else {
-        toast.error(data.message || "Login failed");
-        return { success: false, data };
+        return { success: true };
       }
+
+      toast.error(data.message);
+      return { success: false };
     } catch (error) {
-      toast.error(error?.response?.data?.message || error.message || "Login error");
-      return { success: false, error };
+      toast.error(error.message || "Login error");
+      return { success: false };
     }
   };
 
@@ -106,41 +99,45 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setAuthUser(null);
     setOnlineUsers([]);
-    delete axios.defaults.headers.common["token"];
+
+    delete axios.defaults.headers.common["Authorization"];
     if (socket) socket.disconnect();
+
     toast.success("Logged out successfully");
   };
 
-  // updateProfile accepts either JSON with base64 profilePic or plain fields
   const updateProfile = async (body) => {
     try {
-      // body is expected to be an object (JSON)
       const { data } = await axios.put("/api/auth/update-profile", body);
 
       if (data.success) {
         setAuthUser(data.user);
         localStorage.setItem("authUser", JSON.stringify(data.user));
-        toast.success("Profile updated successfully");
-        return { success: true, user: data.user };
-      } else {
-        toast.error(data.message || "Update failed");
-        return { success: false, data };
+        toast.success("Profile updated");
+        return { success: true };
       }
+
+      toast.error(data.message);
+      return { success: false };
     } catch (error) {
-      toast.error(error?.response?.data?.message || error.message || "Update error");
-      return { success: false, error };
+      toast.error(error.message || "Update error");
+      return { success: false };
     }
   };
 
-  const value = {
-    axios,
-    authUser,
-    onlineUsers,
-    socket,
-    login,
-    logout,
-    updateProfile,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        axios,
+        authUser,
+        onlineUsers,
+        socket,
+        login,
+        logout,
+        updateProfile,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
