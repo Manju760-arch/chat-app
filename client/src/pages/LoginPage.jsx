@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import assets from '../assets/assets';
 import { AuthContext } from '../../context/AuthContext';
+import bgImg from '../assets/bg_img1.jpg'; // Import your background image
 
 const LoginPage = () => {
   const [currState, setCurrState] = useState("Sign up");
@@ -26,12 +27,18 @@ const LoginPage = () => {
   };
 
   return (
-    <div className='min-h-screen bg-cover bg-center flex items-center justify-center gap-8 sm:justify-evenly max-sm:flex-col backdrop-blur-2xl'>
+    <div
+      className='min-h-screen flex items-center justify-center gap-8 sm:justify-evenly max-sm:flex-col backdrop-blur-2xl bg-cover bg-center'
+      style={{ backgroundImage: `url(${bgImg})` }}
+    >
       {/* Left Logo */}
       <img src={assets.chatlogo} alt="Logo" className='w-[min(30vw,250px)]' />
 
       {/* Right Form */}
-      <form onSubmit={onSubmitHandler} className='border-2 bg-gray-900/90 text-white border-gray-500 p-6 flex flex-col gap-6 rounded-lg shadow-lg'>
+      <form
+        onSubmit={onSubmitHandler}
+        className='border-2 bg-gray-900/90 text-white border-gray-500 p-6 flex flex-col gap-6 rounded-lg shadow-lg backdrop-blur-md'
+      >
         <h2 className='font-medium text-2xl flex justify-between items-center'>
           {currState}
           {isDataSubmitted && currState === "Sign up" && (
