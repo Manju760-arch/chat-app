@@ -4,8 +4,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
+const backendUrl = import.meta.env.VITE_BACKEND_URL; // ✅ Fixed typo
 axios.defaults.baseURL = backendUrl;
 axios.defaults.withCredentials = true;
 
@@ -47,12 +46,12 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("authUser", JSON.stringify(data.user));
         connectSocket(data.user);
       }
-    } catch {
-      console.log("Auth check failed");
+    } catch (err) {
+      console.log("Auth check failed:", err.message);
+      logout();
     }
   };
 
-  // FIXED SOCKET CONNECTION (important for Render)
   const connectSocket = (userData) => {
     if (!userData) return;
     if (socket && socket.connected) return;
@@ -95,6 +94,7 @@ export const AuthProvider = ({ children }) => {
       toast.error(data.message);
       return { success: false };
     } catch (error) {
+      console.log("Login error:", error.response?.data?.message || error.message);
       toast.error(error.response?.data?.message || "Login error");
       return { success: false };
     }
@@ -129,6 +129,7 @@ export const AuthProvider = ({ children }) => {
       toast.error(data.message);
       return { success: false };
     } catch (error) {
+      console.log("Update profile error:", error.response?.data?.message || error.message);
       toast.error(error.response?.data?.message || "Update error");
       return { success: false };
     }

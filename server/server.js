@@ -36,7 +36,7 @@ io.on("connection", (socket) => {
 // Middleware
 app.use(express.json({ limit: "10mb" })); // handle JSON + images
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: "*",
   credentials: true,
 }));
 
