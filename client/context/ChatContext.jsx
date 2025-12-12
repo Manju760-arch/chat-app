@@ -11,9 +11,9 @@ export const ChatProvider = ({ children }) => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [unseenMessages, setUnseenMessages] = useState({});
 
-  const { socket, axios } = useContext(AuthContext);
+  const { socket, axios, authUser } = useContext(AuthContext);
 
-  // Load all users
+  // Fetch all users
   const getUsers = async () => {
     try {
       const { data } = await axios.get("/api/messages/users");
@@ -27,17 +27,22 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  // Fetch messages of selected user
   const getMessages = async (userId) => {
     try {
       const { data } = await axios.get(`/api/messages/${userId}`);
       if (data.success) {
         setMessages(data.messages);
+
+        // Reset unseen messages of this user
+        setUnseenMessages((prev) => ({ ...prev, [userId]: 0 }));
       }
     } catch (error) {
       toast.error(error.message);
     }
   };
 
+  // Send message
   const sendMessage = async (messageData) => {
     try {
       const { data } = await axios.post(
@@ -55,16 +60,24 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  // Real-time incoming messages
   const subscribeToMessages = () => {
     if (!socket) return;
 
     socket.off("newMessage");
 
     socket.on("newMessage", (newMessage) => {
-      if (selectedUser && newMessage.senderId === selectedUser._id) {
+      const isChatOpen =
+        selectedUser &&
+        (newMessage.senderId === selectedUser._id ||
+          newMessage.receiverId === selectedUser._id);
+
+      // If user is in that chat → append to chat window
+      if (isChatOpen) {
         setMessages((prev) => [...prev, newMessage]);
         axios.put(`/api/messages/mark/${newMessage._id}`);
       } else {
+        // Increase unseen count
         setUnseenMessages((prev) => ({
           ...prev,
           [newMessage.senderId]: (prev[newMessage.senderId] || 0) + 1,

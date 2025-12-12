@@ -5,7 +5,9 @@ import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
 axios.defaults.baseURL = backendUrl;
+axios.defaults.withCredentials = true;
 
 export const AuthContext = createContext();
 
@@ -15,7 +17,7 @@ export const AuthProvider = ({ children }) => {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [socket, setSocket] = useState(null);
 
-  // Load persisted user (if any) on mount
+  // Load stored user on mount
   useEffect(() => {
     const storedUser = localStorage.getItem("authUser");
     if (storedUser) {
@@ -27,7 +29,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // On token update → set axios header + run checkAuth
+  // When token changes → set axios headers + verify login
   useEffect(() => {
     if (token) {
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -45,15 +47,20 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("authUser", JSON.stringify(data.user));
         connectSocket(data.user);
       }
-    } catch {}
+    } catch {
+      console.log("Auth check failed");
+    }
   };
 
+  // FIXED SOCKET CONNECTION (important for Render)
   const connectSocket = (userData) => {
     if (!userData) return;
     if (socket && socket.connected) return;
 
     const newSocket = io(backendUrl, {
       query: { userId: userData._id },
+      withCredentials: true,
+      transports: ["websocket", "polling"],
     });
 
     newSocket.on("connect", () => {
@@ -88,7 +95,7 @@ export const AuthProvider = ({ children }) => {
       toast.error(data.message);
       return { success: false };
     } catch (error) {
-      toast.error(error.message || "Login error");
+      toast.error(error.response?.data?.message || "Login error");
       return { success: false };
     }
   };
@@ -96,11 +103,13 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("authUser");
+
     setToken(null);
     setAuthUser(null);
     setOnlineUsers([]);
 
     delete axios.defaults.headers.common["Authorization"];
+
     if (socket) socket.disconnect();
 
     toast.success("Logged out successfully");
@@ -120,7 +129,7 @@ export const AuthProvider = ({ children }) => {
       toast.error(data.message);
       return { success: false };
     } catch (error) {
-      toast.error(error.message || "Update error");
+      toast.error(error.response?.data?.message || "Update error");
       return { success: false };
     }
   };
