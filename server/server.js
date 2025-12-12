@@ -35,7 +35,10 @@ io.on("connection", (socket) => {
 
 // Middleware
 app.use(express.json({ limit: "10mb" })); // handle JSON + images
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "*",
+  credentials: true,
+}));
 
 // Basic health check route
 app.use("/api/status", (req, res) => res.send("Server is live"));
