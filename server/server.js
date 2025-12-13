@@ -36,9 +36,13 @@ io.on("connection", (socket) => {
 // Middleware
 app.use(express.json({ limit: "10mb" })); // handle JSON + images
 app.use(cors({
-  origin: "*",
+  origin: [
+    "http://localhost:5173",
+    "https://chat-app-iota-steel.vercel.app"
+  ],
   credentials: true,
 }));
+
 
 // Basic health check route
 app.use("/api/status", (req, res) => res.send("Server is live"));
