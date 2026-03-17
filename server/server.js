@@ -52,17 +52,19 @@ app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter);
 
 // Connect MongoDB
+// Connect MongoDB
 try {
   await connectDB();
   console.log("MongoDB connected successfully");
 } catch (err) {
   console.error("MongoDB connection error:", err.message);
 }
-if(process.env.NODE_ENV !=="production"){
-  // Start server
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on PORT: ${PORT}`));
-}
-//export server for vercel
-export default server;
 
+// Start server
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`Server running on PORT: ${PORT}`);
+});
+
+// Export server
+export default server;
